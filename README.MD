@@ -113,20 +113,24 @@ except Exception:
 
 #### Kinesis:
 
-Put the records
+##### Put the records
 
 > aws kinesis put-records --cli-input-json file://***<file-name>*** --endpoint http://localhost:4567
+
+Example:
+
+aws kinesis put-records --cli-input-json file://mocking/kinesis/user_created.json --endpoint http://localhost:4567
 
 
 
 #### SQS:
 
-Create queue:
+##### Create queue:
 
 > aws sqs create-queue --queue-name ***<queue-name>***  --endpoint-url http://localhost:9324
 
 
 
-Listing queue:
+##### Listing queue:
 
 > aws sqs list-queues --endpoint-url http://localhost:9324

@@ -17,7 +17,7 @@ def handler(event, context):
             json_data = str(payload.decode('utf-8'))
             event_payload = json.loads(json_data)
 
-            logger.info('Process sequence number: {}'.format(message_id))
+            logger.info('Process message id: {}'.format(message_id))
 
             # Warning: You mustn't log the sensitive content.
             # You can log the payload if the payload doesn't contain the sensitive data. Such as patient information

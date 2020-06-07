@@ -2,26 +2,27 @@ service: lambda-demo
 
 # ---BEGIN AWS ENVIRONMENT---
 
-#plugins:
-#  - serverless-pseudo-parameters
-#  - serverless-python-requirements
+plugins:
+  - serverless-pseudo-parameters
+  - serverless-python-requirements
 
 # ---END AWS ENVIRONMENT---
 
 # ---BEGIN LOCAL ENVIRONMENT---
-plugins:
-  - serverless-pseudo-parameters
-  - serverless-offline-python
-  - serverless-python-requirements
-  - serverless-offline-kinesis
-  - serverless-offline-sqs
-  - serverless-offline
+#plugins:
+#  - serverless-pseudo-parameters
+#  - serverless-offline-python
+#  - serverless-python-requirements
+#  - serverless-offline-kinesis
+#  - serverless-offline-sqs
+#  - serverless-offline
 
 # ---END LOCAL ENVIRONMENT---
 
 provider:
   name: aws
   runtime: python3.7
+  region: ap-southeast-1
   stage: ${opt:stage, 'dev'}
   deploymentBucket: ${self:custom.deploymentBucket.${self:provider.stage}}
   deploymentPrefix: serverless
@@ -31,16 +32,21 @@ provider:
 
 custom:
   deploymentBucket:
-    dev: dev-deployment
-    prd: pp-deployment
+    dev: fpt-dev-deployment
+    prd: fpt-prd-deployment
 
   apiGatewayEndpointType:
     dev: regional
     prd: edge
 
-  kinesisStream:
-    dev: arn:aws:kinesis:us-east-1:000000000000:stream/dev-user-stream-v1
+  userStream:
+    dev: 'arn:aws:kinesis:us-east-1:000000000000:stream/dev-user-stream-v1'
     prd: !GetAtt UserStream.Arn
+
+  userQueue:
+    dev: "arn:aws:sqs:elasticmq:000000000000:dev-user-queue-v1"
+    prd: !GetAtt UserQueue.Arn
+
 
   pythonRequirements:
     fileName: requirements.txt
@@ -74,11 +80,12 @@ package:
     - '**/*'
 
 functions:
-  KinesisLambda:
+  KinesisConsumer:
     handler: lambda_functions/kinesis-consumer.handler
-    role: !GetAtt LambdaConsumerRole.Arn
+    role: !GetAtt LambdaRole.Arn
     timeout: 60
     memorySize: 128
+    reservedConcurrency: 3
     package:
       include:
         - lambda_functions/**/*.py
@@ -88,15 +95,15 @@ functions:
       - stream:
           enabled: true
           type: kinesis
-          arn: arn:aws:kinesis:us-east-1:000000000000:stream/dev-user-stream-v1
+          arn: ${self:custom.userStream.${self:provider.stage}}
           batchSize: 2
-#          startingPosition: TRIM_HORIZON
-          startingPosition: LATEST # The most popular position for development environment
+          startingPosition: TRIM_HORIZON
+#          startingPosition: LATEST # The most popular position for development environment
 
-  SQSLambda:
+  SQSConsumer:
     handler: lambda_functions/sqs-consumer.handler
-    role: !GetAtt LambdaConsumerRole.Arn
-    timeout: 60
+    role: !GetAtt LambdaRole.Arn
+    timeout: 15
     memorySize: 128
     package:
       include:
@@ -105,7 +112,9 @@ functions:
       API_ENDPOINT: http://localhost:8080
     events:
       - sqs:
-          arn: arn:aws:sqs:elasticmq:000000000000:dev-user-queue-v1
+          enabled: true
+          arn: ${self:custom.userQueue.${self:provider.stage}}
+          batchSize: 2
 
 resources:
   Resources:
@@ -120,7 +129,12 @@ resources:
         Name: ${self:provider.stage}-user-stream-v1
         ShardCount: 1
 
-    LambdaConsumerRole:
+    UserQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:provider.stage}-user-queue-v1
+
+    LambdaRole:
       Type: AWS::IAM::Role
       Properties:
         AssumeRolePolicyDocument:
@@ -143,9 +157,19 @@ resources:
                     - "logs:PutLogEvents"
                     - "logs:GetLogEvents"
                     - "logs:FilterLogEvents"
+                    - "kinesis:DescribeStream"
                     - "kinesis:DescribeStreamSummary"
+                    - "kinesis:ListStreams"
                     - "kinesis:ListShards"
                     - "kinesis:GetShardIterator"
                     - "kinesis:GetRecords"
                     - "kinesis:SubscribeToShard"
+                    - "kinesis:GetShardIterator"
+                    - "sqs:ListQueues"
+                    - "sqs:GetQueueAttributes"
+                    - "sqs:GetQueueUrl"
+                    - "sqs:ListDeadLetterSourceQueues"
+                    - "sqs:ReceiveMessage"
+                    - "sqs:DeleteMessage"
+                    - "sqs:SendMessageBatch"
                   Resource: "*"
