@@ -42,7 +42,7 @@ You can debug the Lambda on your local environment by setup a **Python Debug Ser
 
 Sample:
 
-![Configuration](images\pycharm_cofiguration.jpg)
+![Configuration](images/pycharm_cofiguration.jpg)
 
 
 
@@ -95,7 +95,7 @@ except Exception:
 
 **Step 6**: Run the Python Debug Server as Debug mode
 
-![](images\run_python_debug_server_as_debug_mode.JPG)
+![](images/run_python_debug_server_as_debug_mode.JPG)
 
 **Step 7**: Run the Serverless Offline by command:
 
