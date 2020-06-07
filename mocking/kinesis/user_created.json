@@ -1,0 +1,13 @@
+{
+    "Records": [
+        {
+            "Data": "eyJpZCI6IDEsICJuYW1lIjogIkthcnkgTHlva28iLCAiZ2VuZGVyIjogIk1BTEUiLCAiYXZhaWxhYmxlIjogdHJ1ZSwgInRhcmdldCI6ICJQUkVUVFlfR0lSTCJ9",
+            "PartitionKey": "1eaca448-fd43-4e08-96f2-489535ebb96f"
+        },
+        {
+            "Data": "eyJpZCI6IDIsICJuYW1lIjogIkVtaXJpIFN1enVoYXJhIiwgImdlbmRlciI6ICJGRU1BTEUiLCAiYXZhaWxhYmxlIjogZmFsc2UsICJ0YXJnZXQiOiAiQ09PTF9CT1kifQ==",
+            "PartitionKey": "2b89fde2-ef29-4e11-a48b-db669db1a408"
+        }
+    ],
+    "StreamName": "dev-user-stream-v1"
+}

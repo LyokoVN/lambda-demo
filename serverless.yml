@@ -1,0 +1,151 @@
+service: lambda-demo
+
+# ---BEGIN AWS ENVIRONMENT---
+
+#plugins:
+#  - serverless-pseudo-parameters
+#  - serverless-python-requirements
+
+# ---END AWS ENVIRONMENT---
+
+# ---BEGIN LOCAL ENVIRONMENT---
+plugins:
+  - serverless-pseudo-parameters
+  - serverless-offline-python
+  - serverless-python-requirements
+  - serverless-offline-kinesis
+  - serverless-offline-sqs
+  - serverless-offline
+
+# ---END LOCAL ENVIRONMENT---
+
+provider:
+  name: aws
+  runtime: python3.7
+  stage: ${opt:stage, 'dev'}
+  deploymentBucket: ${self:custom.deploymentBucket.${self:provider.stage}}
+  deploymentPrefix: serverless
+  profile: ${opt:profile, ''}
+  endpointType: ${self:custom.apiGatewayEndpointType.${self:provider.stage}}
+  version: ${opt:version, 'v1'}
+
+custom:
+  deploymentBucket:
+    dev: dev-deployment
+    prd: pp-deployment
+
+  apiGatewayEndpointType:
+    dev: regional
+    prd: edge
+
+  kinesisStream:
+    dev: arn:aws:kinesis:us-east-1:000000000000:stream/dev-user-stream-v1
+    prd: !GetAtt UserStream.Arn
+
+  pythonRequirements:
+    fileName: requirements.txt
+
+# ---BEGIN LOCAL ENVIRONMENT---
+
+  serverless-offline-kinesis:
+    apiVersion: '2013-12-02'
+    endpoint: http://0.0.0.0:4567
+    region: us-east-1
+    accessKeyId: root
+    secretAccessKey: root
+    skipCacheInvalidation: false
+    readInterval: 500
+
+  serverless-offline-sqs:
+    autoCreate: true
+    apiVersion: '2012-11-05'
+    endpoint: http://0.0.0.0:9324
+    region: us-east-1
+    accessKeyId: root
+    secretAccessKey: root
+    skipCacheInvalidation: false
+
+
+# ---END LOCAL ENVIRONMENT---
+
+package:
+  individually: true
+  exclude:
+    - '**/*'
+
+functions:
+  KinesisLambda:
+    handler: lambda_functions/kinesis-consumer.handler
+    role: !GetAtt LambdaConsumerRole.Arn
+    timeout: 60
+    memorySize: 128
+    package:
+      include:
+        - lambda_functions/**/*.py
+    environment:
+      API_ENDPOINT: http://localhost:8080
+    events:
+      - stream:
+          enabled: true
+          type: kinesis
+          arn: arn:aws:kinesis:us-east-1:000000000000:stream/dev-user-stream-v1
+          batchSize: 2
+#          startingPosition: TRIM_HORIZON
+          startingPosition: LATEST # The most popular position for development environment
+
+  SQSLambda:
+    handler: lambda_functions/sqs-consumer.handler
+    role: !GetAtt LambdaConsumerRole.Arn
+    timeout: 60
+    memorySize: 128
+    package:
+      include:
+        - lambda_functions/**/*.py
+    environment:
+      API_ENDPOINT: http://localhost:8080
+    events:
+      - sqs:
+          arn: arn:aws:sqs:elasticmq:000000000000:dev-user-queue-v1
+
+resources:
+  Resources:
+    LogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: ${self:service}-${self:provider.stage}
+
+    UserStream:
+      Type: AWS::Kinesis::Stream
+      Properties:
+        Name: ${self:provider.stage}-user-stream-v1
+        ShardCount: 1
+
+    LambdaConsumerRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: 'sts:AssumeRole'
+        Policies:
+          - PolicyName: LambdaLogsPolicy
+            PolicyDocument:
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - "logs:CreateLogGroup"
+                    - "logs:CreateLogStream"
+                    - "logs:DescribeLogGroups"
+                    - "logs:DescribeLogStreams"
+                    - "logs:PutLogEvents"
+                    - "logs:GetLogEvents"
+                    - "logs:FilterLogEvents"
+                    - "kinesis:DescribeStreamSummary"
+                    - "kinesis:ListShards"
+                    - "kinesis:GetShardIterator"
+                    - "kinesis:GetRecords"
+                    - "kinesis:SubscribeToShard"
+                  Resource: "*"

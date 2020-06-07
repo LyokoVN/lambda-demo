@@ -1,0 +1,42 @@
+version: '3.5'
+
+services:
+  kinesalite:
+    image: dlsniper/kinesalite
+    container_name: kinesalite
+    restart: always
+    ports:
+      - 4567:4567
+    networks:
+      - lambda-demo
+
+  elasticmq:
+    image: softwaremill/elasticmq
+    container_name: elasticmq
+    restart: always
+    ports:
+      - 9324:9324
+    networks:
+      - lambda-demo
+
+  kinesis_initializer:
+    image: infrastructureascode/aws-cli:latest
+    entrypoint: sh
+    command: ./init-data.sh
+    container_name: kinesis_initializer
+    volumes:
+      - ./init-data.sh:/project/init-data.sh:ro
+    environment:
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_KINESIS_ENDPOINT_URL=http://kinesalite:4567
+      - AWS_SQS_ENDPOINT_URL=http://elasticmq:9324
+    networks:
+      - lambda-demo
+    depends_on:
+      - kinesalite
+
+networks:
+  lambda-demo:
+    driver: bridge
