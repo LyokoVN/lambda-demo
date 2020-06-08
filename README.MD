@@ -1,8 +1,14 @@
-### Dependency
+### Dependencies
 
 **NodeJS**
 
 Install the NodeJS: https://nodejs.org/en/download
+
+
+
+##### Docker
+
+Install the Docker: https://docs.docker.com/get-started/
 
 
 
@@ -23,6 +29,18 @@ Check the Python environment activated (based on the path of the Python):
 > pip --version
 
 
+
+##### Simulation
+
+You can deploy the Kinesis and SQS locally by command:
+
+> docker-compose up -d
+
+
+
+##### Generate the mock data
+
+> python mock-generator.py
 
 ### Setup the Serverless to Debug the Lambda on local environment
 
@@ -119,9 +137,8 @@ except Exception:
 
 Example:
 
-aws kinesis put-records --cli-input-json file://mocking/kinesis/user_created.json --endpoint http://localhost:4567
-
-
+> aws kinesis put-records --cli-input-json file://mocking/kinesis/user_created.json --endpoint http://localhost:4567
+>
 
 #### SQS:
 
@@ -134,3 +151,14 @@ aws kinesis put-records --cli-input-json file://mocking/kinesis/user_created.jso
 ##### Listing queue:
 
 > aws sqs list-queues --endpoint-url http://localhost:9324
+
+
+
+##### Put Messages
+
+> aws sqs send-message-batch --cli-input-json file://***<file-name>***  --endpoint http://localhost:9324
+
+Example:
+
+> aws sqs send-message-batch --cli-input-json file://mocking/sqs/user_created.json  --endpoint http://localhost:9324
+
